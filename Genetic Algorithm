@@ -1,54 +1,46 @@
-import random
+FUNCTION fitness(x):
+    RETURN x * x
 
-TARGET = "Hello World!"
-GENE_SET = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!."
-POPULATION_SIZE = 100
-MUTATION_RATE = 0.01
+FUNCTION decode(binary_string):
+    RETURN integer value of binary_string
 
-def fitness(chromosome):
-    # Number of matching letters in correct position
-    return sum(1 for expected, actual in zip(TARGET, chromosome) if expected == actual)
+START
+INPUT POP_SIZE
+SET CHROM_LENGTH = 5
 
-def random_chromosome():
-    return ''.join(random.choices(GENE_SET, k=len(TARGET)))
+// Step 1: Generate initial population
+FOR i = 1 TO POP_SIZE:
+    population[i] = random 5-bit binary string
 
-def mutate(chromosome):
-    chromosome = list(chromosome)
-    idx = random.randrange(len(chromosome))
-    chromosome[idx] = random.choice(GENE_SET)
-    return ''.join(chromosome)
+// Step 2: Calculate fitness and selection probabilities
+FOR EACH chromosome IN population:
+    x = decode(chromosome)
+    fit = fitness(x)
+    STORE x, fit
 
-def crossover(parent1, parent2):
-    idx = random.randint(1, len(parent1) - 2)
-    child = parent1[:idx] + parent2[idx:]
-    return child
+Compute total_fitness
+FOR EACH fitness:
+    probability = fitness / total_fitness
+    expected_count = probability * POP_SIZE
 
-def select_pair(population):
-    # Tournament selection
-    return random.sample(sorted(population, key=lambda x: x[7], reverse=True)[:50], 2)
+// Step 3: Roulette Wheel Selection
+FOR i = 1 TO POP_SIZE:
+    SELECT chromosome based on probability
+    ADD to mating_pool
 
-# Create initial population
-population = [(random_chromosome(), 0) for _ in range(POPULATION_SIZE)]
-generation = 0
+// Step 4: Crossover (pairwise)
+FOR i = 0 TO size of mating_pool - 1 STEP 2:
+    parent1, parent2 = mating_pool[i], mating_pool[i+1]
+    crossover_point = random between 1 and CHROM_LENGTH - 1
+    child = crossover(parent1, parent2)
+    ADD child to offspring
 
-while True:
-    # Evaluate fitness for each chromosome
-    population = [(chrom, fitness(chrom)) for chrom, _ in population]
-    # Check for solution
-    best_chrom, best_fit = max(population, key=lambda x: x[7])
-    print(f"Generation {generation}: {best_chrom} Fitness: {best_fit}")
-    if best_fit == len(TARGET):
-        break
+// Step 5: Mutation
+FOR EACH child IN offspring:
+    FOR EACH bit IN child:
+        IF random < mutation_rate:
+            FLIP the bit
+    ADD mutated child to new_generation
 
-    # Create next generation
-    next_generation = []
-    while len(next_generation) < POPULATION_SIZE:
-        parent1, parent2 = select_pair(population)
-        child = crossover(parent1, parent2)
-        if random.random() < MUTATION_RATE:
-            child = mutate(child)
-        next_generation.append((child, 0))  # Fitness will be recalculated
-
-    # Move to next generation
-    population = next_generation
-    generation += 1
+PRINT population, fitness, offspring, and mutations
+END
