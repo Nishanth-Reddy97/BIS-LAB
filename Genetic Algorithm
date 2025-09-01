@@ -1,48 +1,54 @@
 import random
-import datetime
 
-# Set of possible genes (characters)
-gene_set = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!."
+TARGET = "Hello World!"
+GENE_SET = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!."
+POPULATION_SIZE = 100
+MUTATION_RATE = 0.01
 
-# Target string we want to evolve
-target = "Hello World!"
+def fitness(chromosome):
+    # Number of matching letters in correct position
+    return sum(1 for expected, actual in zip(TARGET, chromosome) if expected == actual)
 
-def generate_parent(length):
-    return ''.join(random.choices(gene_set, k=length))
+def random_chromosome():
+    return ''.join(random.choices(GENE_SET, k=len(TARGET)))
 
-def get_fitness(guess):
-    return sum(1 for expected, actual in zip(target, guess) if expected == actual)
+def mutate(chromosome):
+    chromosome = list(chromosome)
+    idx = random.randrange(len(chromosome))
+    chromosome[idx] = random.choice(GENE_SET)
+    return ''.join(chromosome)
 
-def mutate(parent):
-    index = random.randrange(0, len(parent))
-    child_genes = list(parent)
-    new_gene, alternate = random.sample(gene_set, 2)
-    child_genes[index] = alternate if new_gene == child_genes[index] else new_gene
-    return ''.join(child_genes)
+def crossover(parent1, parent2):
+    idx = random.randint(1, len(parent1) - 2)
+    child = parent1[:idx] + parent2[idx:]
+    return child
 
-def display(guess, startTime):
-    timeDiff = datetime.datetime.now() - startTime
-    print(f"{guess} {get_fitness(guess)} {str(timeDiff)}")
+def select_pair(population):
+    # Tournament selection
+    return random.sample(sorted(population, key=lambda x: x[7], reverse=True)[:50], 2)
 
-def main():
-    random.seed()
-    best_parent = generate_parent(len(target))
-    best_fitness = get_fitness(best_parent)
-    startTime = datetime.datetime.now()
-    display(best_parent, startTime)
+# Create initial population
+population = [(random_chromosome(), 0) for _ in range(POPULATION_SIZE)]
+generation = 0
 
-    while True:
-        child = mutate(best_parent)
-        child_fitness = get_fitness(child)
+while True:
+    # Evaluate fitness for each chromosome
+    population = [(chrom, fitness(chrom)) for chrom, _ in population]
+    # Check for solution
+    best_chrom, best_fit = max(population, key=lambda x: x[7])
+    print(f"Generation {generation}: {best_chrom} Fitness: {best_fit}")
+    if best_fit == len(TARGET):
+        break
 
-        if best_fitness >= child_fitness:
-            continue
+    # Create next generation
+    next_generation = []
+    while len(next_generation) < POPULATION_SIZE:
+        parent1, parent2 = select_pair(population)
+        child = crossover(parent1, parent2)
+        if random.random() < MUTATION_RATE:
+            child = mutate(child)
+        next_generation.append((child, 0))  # Fitness will be recalculated
 
-        display(child, startTime)
-        if child_fitness >= len(best_parent):
-            break
-        best_fitness = child_fitness
-        best_parent = child
-
-if __name__ == '__main__':
-    main()
+    # Move to next generation
+    population = next_generation
+    generation += 1
