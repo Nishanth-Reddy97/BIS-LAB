@@ -1,0 +1,66 @@
+import random
+
+# Objective function (example: Sphere function f(x) = sum(x^2))
+def fitness_function(position):
+    return sum([x**2 for x in position])
+
+# Particle class
+class Particle:
+    def __init__(self, dim, bounds):
+        self.position = [random.uniform(bounds[0], bounds[1]) for _ in range(dim)]
+        self.velocity = [random.uniform(-1, 1) for _ in range(dim)]
+        self.best_position = list(self.position)
+        self.best_value = fitness_function(self.position)
+
+    def update_velocity(self, gbest, w, c1, c2):
+        for i in range(len(self.position)):
+            r1, r2 = random.random(), random.random()
+            cognitive = c1 * r1 * (self.best_position[i] - self.position[i])
+            social = c2 * r2 * (gbest[i] - self.position[i])
+            self.velocity[i] = w * self.velocity[i] + cognitive + social
+
+    def update_position(self, bounds):
+        for i in range(len(self.position)):
+            self.position[i] += self.velocity[i]
+            # Keep within bounds
+            self.position[i] = max(bounds[0], min(bounds[1], self.position[i]))
+
+# PSO Algorithm
+def PSO(num_particles=30, dim=2, bounds=(-10, 10), max_iter=100, w=0.7, c1=1.5, c2=1.5):
+    # Initialize swarm
+    swarm = [Particle(dim, bounds) for _ in range(num_particles)]
+
+    # Global best initialization
+    gbest = min(swarm, key=lambda p: p.best_value).best_position
+    gbest_value = fitness_function(gbest)
+
+    # Optimization loop
+    for t in range(max_iter):
+        for particle in swarm:
+            particle.update_velocity(gbest, w, c1, c2)
+            particle.update_position(bounds)
+
+            value = fitness_function(particle.position)
+
+            # Update personal best
+            if value < particle.best_value:
+                particle.best_position = list(particle.position)
+                particle.best_value = value
+
+        # Update global best
+        best_particle = min(swarm, key=lambda p: p.best_value)
+        if best_particle.best_value < gbest_value:
+            gbest = list(best_particle.best_position)
+            gbest_value = best_particle.best_value
+
+        print(f"Iteration {t+1}: Best Value = {gbest_value}")
+
+    return gbest, gbest_value
+
+
+# Run PSO
+if __name__ == "__main__":
+    best_pos, best_val = PSO()
+    print("\nOptimal Solution Found:")
+    print("Best Position:", best_pos)
+    print("Best Value:", best_val)
