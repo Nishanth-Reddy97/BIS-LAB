@@ -1,46 +1,74 @@
-FUNCTION fitness(x):
-    RETURN x * x
+import random
 
-FUNCTION decode(binary_string):
-    RETURN integer value of binary_string
+# ---- Parameters ----
+TARGET = "Hello World"
+GENE_SET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ "
+POPULATION_SIZE = 100
+MUTATION_RATE = 0.01
 
-START
-INPUT POP_SIZE
-SET CHROM_LENGTH = 5
+# ---- Fitness Function ----
+def fitness(chromosome):
+    """Return number of characters that match the target string."""
+    return sum(1 for expected, actual in zip(TARGET, chromosome) if expected == actual)
 
-// Step 1: Generate initial population
-FOR i = 1 TO POP_SIZE:
-    population[i] = random 5-bit binary string
+# ---- Generate a Random Chromosome ----
+def random_chromosome():
+    """Generate a random string of same length as TARGET."""
+    return ''.join(random.choices(GENE_SET, k=len(TARGET)))
 
-// Step 2: Calculate fitness and selection probabilities
-FOR EACH chromosome IN population:
-    x = decode(chromosome)
-    fit = fitness(x)
-    STORE x, fit
+# ---- Mutation ----
+def mutate(chromosome):
+    """Randomly mutate a single gene (character)."""
+    chromosome = list(chromosome)
+    idx = random.randrange(len(chromosome))
+    chromosome[idx] = random.choice(GENE_SET)
+    return ''.join(chromosome)
 
-Compute total_fitness
-FOR EACH fitness:
-    probability = fitness / total_fitness
-    expected_count = probability * POP_SIZE
+# ---- Crossover ----
+def crossover(parent1, parent2):
+    """Perform single-point crossover."""
+    if len(parent1) < 2:
+        return parent1
+    idx = random.randint(1, len(parent1) - 2)
+    child = parent1[:idx] + parent2[idx:]
+    return child
 
-// Step 3: Roulette Wheel Selection
-FOR i = 1 TO POP_SIZE:
-    SELECT chromosome based on probability
-    ADD to mating_pool
+# ---- Selection (Tournament Style) ----
+def select_pair(population):
+    """Select two fittest individuals from population."""
+    sorted_pop = sorted(population, key=lambda x: x[1], reverse=True)
+    return random.sample(sorted_pop[:50], 2)
 
-// Step 4: Crossover (pairwise)
-FOR i = 0 TO size of mating_pool - 1 STEP 2:
-    parent1, parent2 = mating_pool[i], mating_pool[i+1]
-    crossover_point = random between 1 and CHROM_LENGTH - 1
-    child = crossover(parent1, parent2)
-    ADD child to offspring
+# ---- Initialize Population ----
+population = [(random_chromosome(), 0) for _ in range(POPULATION_SIZE)]
+generation = 0
 
-// Step 5: Mutation
-FOR EACH child IN offspring:
-    FOR EACH bit IN child:
-        IF random < mutation_rate:
-            FLIP the bit
-    ADD mutated child to new_generation
+# ---- Evolution Loop ----
+while True:
+    # Evaluate fitness
+    population = [(chrom, fitness(chrom)) for chrom, _ in population]
+    
+    # Get the best individual
+    best_chrom, best_fit = max(population, key=lambda x: x[1])
+    
+    print(f"Generation {generation}: {best_chrom}  Fitness: {best_fit}")
+    
+    # Stop if fully matched
+    if best_fit == len(TARGET):
+        print("\nTarget reached!")
+        break
+    
+    # ---- Create next generation ----
+    next_generation = []
+    
+    while len(next_generation) < POPULATION_SIZE:
+        parent1, parent2 = select_pair(population)
+        parent1, parent2 = parent1[0], parent2[0]
+        child = crossover(parent1, parent2)
+        if random.random() < MUTATION_RATE:
+            child = mutate(child)
+        next_generation.append((child, 0))
+    
+    population = next_generation
+    generation += 1
 
-PRINT population, fitness, offspring, and mutations
-END
