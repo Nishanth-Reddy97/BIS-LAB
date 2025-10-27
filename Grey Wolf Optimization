@@ -1,0 +1,69 @@
+import numpy as np
+
+# Example STUB fitness function (customize as needed)
+def fitness(schedule, workload, prefs, skills):
+    # Weighted sum of: workload balance + preference satisfaction + skill coverage
+    workload_balance = np.std(workload[schedule])
+    preference_score = np.sum(prefs[schedule])
+    skill_coverage = np.sum(skills[schedule])
+    # You can scale weights as needed
+    return workload_balance - 0.1 * preference_score - 0.5 * skill_coverage
+
+# Parameters
+num_wolves = 10
+num_staff = 6
+num_shifts = 3  # e.g., 0: Morning, 1: Afternoon, 2: Night
+num_iterations = 30
+
+# Example constraints (customize for real problem)
+workload = np.array([5, 4, 6, 5, 4, 6])
+prefs = np.array([3, 2, 4, 2, 3, 4])
+skills = np.array([1, 1, 0, 1, 0, 1])
+
+# Initialize wolves (each wolf is an array mapping staff to a shift number)
+wolves = [np.random.choice(num_shifts, num_staff) for _ in range(num_wolves)]
+
+# GWO Algorithm
+for t in range(num_iterations):
+    # Calculate fitness for all wolves
+    fitness_values = [fitness(wolf, workload, prefs, skills) for wolf in wolves]
+    # Identify alpha, beta, delta (best three)
+    sorted_indices = np.argsort(fitness_values)
+    alpha, beta, delta = [wolves[i] for i in sorted_indices[:3]]
+
+    a = 2 - (2 * t/num_iterations)  # Linearly decreases from 2 to 0
+
+    # Update each wolf
+    for i in range(num_wolves):
+        new_wolf = np.copy(wolves[i])
+        for d in range(num_staff):
+            r1, r2 = np.random.rand(), np.random.rand()
+            A1 = 2 * a * r1 - a
+            C1 = 2 * r2
+            D_alpha = abs(C1 * alpha[d] - new_wolf[d])
+            X1 = alpha[d] - A1 * D_alpha
+
+            r1, r2 = np.random.rand(), np.random.rand()
+            A2 = 2 * a * r1 - a
+            C2 = 2 * r2
+            D_beta = abs(C2 * beta[d] - new_wolf[d])
+            X2 = beta[d] - A2 * D_beta
+
+            r1, r2 = np.random.rand(), np.random.rand()
+            A3 = 2 * a * r1 - a
+            C3 = 2 * r2
+            D_delta = abs(C3 * delta[d] - new_wolf[d])
+            X3 = delta[d] - A3 * D_delta
+
+            # Discrete: round and clip to valid shift index
+            new_wolf[d] = int(round((X1 + X2 + X3) / 3))
+            new_wolf[d] = np.clip(new_wolf[d], 0, num_shifts - 1)
+        wolves[i] = new_wolf
+
+    # Optional: Print current iteration and best fitness
+    print(f"Iteration {t+1}: Best Fitness = {min(fitness_values)}")
+
+# Output: Alpha wolf's schedule = best found
+final_fitness_values = [fitness(wolf, workload, prefs, skills) for wolf in wolves]
+best_schedule = wolves[np.argmin(final_fitness_values)]
+print("Best schedule (Alpha wolf):", best_schedule)
